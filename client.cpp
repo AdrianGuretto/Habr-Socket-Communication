@@ -148,21 +148,24 @@ private:
     int ReceiveMessage(char* writable_buff) noexcept{
 
         // Receive packet length (first 4 bytes)
-        char msg_len[4];
-        int recv_bytes = recv(connection_socket_, msg_len, sizeof(msg_len), 0);
+        char msg_len_str[5]; // 4 bytes + 1 byte for the null-terminating character
+        memset(msg_len_str, 0x00, sizeof(msg_len_str));
+        msg_len_str[4] = '\0';
+
+        int recv_bytes = recv(connection_socket_, msg_len_str, sizeof(msg_len_str) - 1, 0);
         if (recv_bytes <= 0){ // either client disconnect or an error
             return recv_bytes;
         }
-        std::cerr << "[Debug] Received "s << recv_bytes << " bytes (packet length)\n"s;
+        std::cerr << "[Debug] Received "s << recv_bytes << " bytes (packet length): '"s << msg_len_str <<"\n"s;
         // Check if the message conforms to the protocol
-        for (const char c : std::string(msg_len)){
+        for (const char c : std::string(msg_len_str)){
             if (!std::isdigit(c)){
                 std::cerr << "[Error] Failed to read data from the remote host: invalid protocol format.\n"s;
                 return -1;
             }
         }
 
-        int packet_length = std::atoi(msg_len);
+        int packet_length = std::atoi(msg_len_str);
         recv_bytes = recv(connection_socket_, writable_buff, packet_length, 0);
         if (recv_bytes <= 0){ // Check for errors
             return recv_bytes;
@@ -191,7 +194,7 @@ private:
             if (SendMessage(message_str) == -1){
                 std::exit(1);
             }
-            bzero(msg_buff, MAX_DATA_BUFFER_SIZE);
+            memset(msg_buff, 0x00, MAX_DATA_BUFFER_SIZE);
         }
     }
 
@@ -218,7 +221,7 @@ private:
             std::cout << msg_buff << '\n';
 
             PrintInputPrompt();
-            bzero(msg_buff, MAX_DATA_BUFFER_SIZE); // Clear the input from any trash values
+            memset(msg_buff, 0x00, MAX_DATA_BUFFER_SIZE); // Clear the input from any trash values
         }
     }
 

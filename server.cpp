@@ -168,9 +168,11 @@ private:
         }
         return sent_bytes;
     }
-    int BroadcastMessage(const std::string& message) noexcept{
+    int BroadcastMessage(const std::string& message, const ConnectionInfo& conn_from) noexcept{
+        // Prepend the message with the address of the client who's sending it.
+        std::string packet = conn_from.ToString() + " to ALL: "s + message;
         for (const auto& [sock, client_info] : connected_clients_){
-            if (SendMessage(sock, message) == -1){
+            if (SendMessage(sock, packet) == -1){
                 DisconnectClient(sock);
                 return -1;
             }
@@ -188,10 +190,10 @@ private:
         // first we need to get the length of the preceeding data chunk.
         char message_size_str[5]; // 4 + 1 null-character
 
-        bzero(message_size_str, sizeof(message_size_str));
+        memset(message_size_str, 0x00, sizeof(message_size_str));
         message_size_str[4] = '\0';
 
-        int recv_bytes = recv(sender_socketfd, &message_size_str, sizeof(message_size_str) - 1, 0);
+        int recv_bytes = recv(sender_socketfd, message_size_str, sizeof(message_size_str) - 1, 0);
         if (recv_bytes <= 0){
             if (recv_bytes < 0){
                 std::cerr << "[Error] Failed to receive message length from "s << conn_info.ToString() << " : recv(): "s << std::system_category().message(GET_SOCKET_ERRNO()) << std::endl;
@@ -253,8 +255,7 @@ private:
     int HandleConnections() noexcept{
         while (true){
             // Create a copy of the main polling set, since select() modifies fd_set structure.
-            fd_set polling_set_copy;
-            FD_COPY(&sock_polling_set_, &polling_set_copy);
+            fd_set polling_set_copy = sock_polling_set_;
             
             // See if there is any data available for reading.
             if (select(max_socket_ + 1, &polling_set_copy, NULL, NULL, NULL) < 0){
@@ -272,7 +273,7 @@ private:
                     }
                     else{ // Regular client is sending us some data
                         char msg_buffer[MAX_DATA_BUFFER_SIZE];
-                        bzero(msg_buffer, MAX_DATA_BUFFER_SIZE);
+                        memset(msg_buffer, 0x00, MAX_DATA_BUFFER_SIZE);
 
                         int recv_bytes = ReceiveMessage(sock, msg_buffer);
 
@@ -280,7 +281,7 @@ private:
                             DisconnectClient(sock);
                             continue;
                         }
-                        BroadcastMessage(msg_buffer);
+                        BroadcastMessage(msg_buffer, connected_clients_.at(sock));
                         
                     }
                 } // if (FD_ISSET)
@@ -307,7 +308,7 @@ int main(int argc, char* argv[]){
 #ifdef _WIN32
     WSADATA d;
     if (WSAStartup(MAKEWORD(2, 2), &d)){
-        std::cerr << "Failed to initialize WinSockAPI: " << std::system_category().message(GETSOCKETERRNO()) << std::endl;
+        std::cerr << "Failed to initialize WinSockAPI: " << std::system_category().message(GET_SOCKET_ERRNO()) << std::endl;
         return 1;
     }
 #endif

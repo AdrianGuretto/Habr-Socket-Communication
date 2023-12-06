@@ -1,4 +1,0 @@
-/Users/vladimirsmith/Desktop/HabrArticle/build/CMakeFiles/server_app.dir
-/Users/vladimirsmith/Desktop/HabrArticle/build/CMakeFiles/client_app.dir
-/Users/vladimirsmith/Desktop/HabrArticle/build/CMakeFiles/edit_cache.dir
-/Users/vladimirsmith/Desktop/HabrArticle/build/CMakeFiles/rebuild_cache.dir
