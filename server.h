@@ -27,7 +27,7 @@ inline static ConnectionInfo GetConnectionInfo(sockaddr_storage* addr){
 
     char ip_addr[INET_ADDRSTRLEN];
     // Retrieve the IP address from the connection and write it to ip_addr string buffer.
-    inet_ntop(AF_INET, conn_addr, ip_addr, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &conn_addr->sin_addr, ip_addr, INET_ADDRSTRLEN);
 
     ret_conn.address = std::string(ip_addr);
     ret_conn.port = std::to_string(conn_addr->sin_port);
